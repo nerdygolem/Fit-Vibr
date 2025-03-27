@@ -411,7 +411,35 @@
         let isResting = false;
         let muted = false;
         let audioContext = null;
+        let wakeLock = null;
         let history = JSON.parse(localStorage.getItem('fitnessHistory')) || [];
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock acquired');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock released');
+                    });
+                } catch (err) {
+                    console.warn('Failed to acquire Wake Lock:', err);
+                }
+            } else {
+                console.warn('Wake Lock API not supported in this browser');
+            }
+        }
+
+        async function releaseWakeLock() {
+            if (wakeLock) {
+                try {
+                    await wakeLock.release();
+                    wakeLock = null;
+                } catch (err) {
+                    console.warn('Failed to release Wake Lock:', err);
+                }
+            }
+        }
 
         function initAudioContext() {
             if (!audioContext) {
@@ -465,6 +493,7 @@
                 return;
             }
             initAudioContext();
+            requestWakeLock(); // Prevent screen timeout
             currentRoutine = [...warmUp, ...routines[type][length], ...coolDown];
             targetDuration = length === 'short' ? 300 : 600; // 5 or 10 minutes
             currentIndex = 0;
@@ -592,6 +621,7 @@
             resetState();
             document.body.style.background = `linear-gradient(135deg, var(--bg-start), var(--bg-end))`;
             announce("Workout stopped");
+            releaseWakeLock(); // Release wake lock when stopping
         }
 
         function resetRoutine() {
@@ -616,7 +646,7 @@
             history.push({ type: currentRoutine[1].name.split(' ')[0], duration: targetDuration, date: new Date().toLocaleString() });
             localStorage.setItem('fitnessHistory', JSON.stringify(history));
             announce("Routine complete");
-            setTimeout(stopRoutine, 2000);
+            setTimeout(stopRoutine, 2000); // Wake lock released in stopRoutine
         }
 
         function resetState() {
