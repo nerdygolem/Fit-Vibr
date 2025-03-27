@@ -207,6 +207,11 @@
             max-height: 80vh;
             overflow-y: auto;
         }
+        .stats {
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
         @media (max-width: 400px) {
             h1 { font-size: 2rem; }
             .exercise-name { font-size: 1.5rem; }
@@ -224,6 +229,7 @@
             <div class="option-group">
                 <button class="btn btn-primary" onclick="startRoutine('flexibility', 'short')">Short (5 Min)</button>
                 <button class="btn btn-primary" onclick="startRoutine('flexibility', 'long')">Long (10 Min)</button>
+                <button class="btn btn-primary" onclick="startRandomRoutine('flexibility')">Random</button>
                 <button class="btn btn-info" onclick="toggleRoutineList('flexibility')">List</button>
             </div>
         </div>
@@ -232,6 +238,7 @@
             <div class="option-group">
                 <button class="btn btn-primary" onclick="startRoutine('posture', 'short')">Short (5 Min)</button>
                 <button class="btn btn-primary" onclick="startRoutine('posture', 'long')">Long (10 Min)</button>
+                <button class="btn btn-primary" onclick="startRandomRoutine('posture')">Random</button>
                 <button class="btn btn-info" onclick="toggleRoutineList('posture')">List</button>
             </div>
         </div>
@@ -240,6 +247,7 @@
             <div class="option-group">
                 <button class="btn btn-primary" onclick="startRoutine('strength', 'short')">Short (5 Min)</button>
                 <button class="btn btn-primary" onclick="startRoutine('strength', 'long')">Long (10 Min)</button>
+                <button class="btn btn-primary" onclick="startRandomRoutine('strength')">Random</button>
                 <button class="btn btn-info" onclick="toggleRoutineList('strength')">List</button>
             </div>
         </div>
@@ -248,12 +256,13 @@
             <div class="option-group">
                 <button class="btn btn-primary" onclick="startRoutine('resistance', 'short')">Short (5 Min)</button>
                 <button class="btn btn-primary" onclick="startRoutine('resistance', 'long')">Long (10 Min)</button>
+                <button class="btn btn-primary" onclick="startRandomRoutine('resistance')">Random</button>
                 <button class="btn btn-info" onclick="toggleRoutineList('resistance')">List</button>
             </div>
         </div>
         <div class="option-group">
             <button class="btn btn-info" onclick="showHealthCheck()">Health Check</button>
-            <button class="btn btn-info" onclick="showHistory()">Workout History</button>
+            <button class="btn btn-info" onclick="showHistory()">Workout Stats</button>
         </div>
         <div id="routineList" class="routine-list"></div>
     </div>
@@ -293,7 +302,9 @@
     </div>
 
     <div id="historyModal">
-        <h2>Workout History</h2>
+        <h2>Workout Stats</h2>
+        <div class="stats" id="statsDisplay"></div>
+        <h3>History</h3>
         <ul id="historyList"></ul>
         <button class="btn btn-secondary" onclick="document.getElementById('historyModal').style.display='none'" aria-label="Close history modal">Close</button>
     </div>
@@ -482,9 +493,17 @@
         function announce(text) {
             if (!muted) {
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.2; // Slightly faster for clarity
+                utterance.rate = 1.2;
                 window.speechSynthesis.speak(utterance);
             }
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
         }
 
         function startRoutine(type, length) {
@@ -493,9 +512,24 @@
                 return;
             }
             initAudioContext();
-            requestWakeLock(); // Prevent screen timeout
+            requestWakeLock();
             currentRoutine = [...warmUp, ...routines[type][length], ...coolDown];
-            targetDuration = length === 'short' ? 300 : 600; // 5 or 10 minutes
+            targetDuration = length === 'short' ? 300 : 600;
+            currentIndex = 0;
+            totalTimeElapsed = 0;
+            document.getElementById('workoutDisplay').style.display = 'block';
+            document.querySelector('.options').style.display = 'none';
+            document.body.style.background = `linear-gradient(135deg, ${type === 'flexibility' ? '#ffeb3b' : type === 'posture' ? '#00e676' : type === 'strength' ? '#ff4081' : '#ff5722'}, var(--bg-end))`;
+            nextExercise();
+        }
+
+        function startRandomRoutine(type) {
+            initAudioContext();
+            requestWakeLock();
+            const baseRoutine = routines[type].long;
+            const shuffled = shuffleArray([...baseRoutine]).slice(0, type === 'flexibility' ? 8 : 6);
+            currentRoutine = [...warmUp, ...shuffled, ...coolDown];
+            targetDuration = currentRoutine.reduce((sum, ex) => sum + (ex.time + (ex.rest || TRANSITION_TIME)), 0);
             currentIndex = 0;
             totalTimeElapsed = 0;
             document.getElementById('workoutDisplay').style.display = 'block';
@@ -621,7 +655,7 @@
             resetState();
             document.body.style.background = `linear-gradient(135deg, var(--bg-start), var(--bg-end))`;
             announce("Workout stopped");
-            releaseWakeLock(); // Release wake lock when stopping
+            releaseWakeLock();
         }
 
         function resetRoutine() {
@@ -646,7 +680,7 @@
             history.push({ type: currentRoutine[1].name.split(' ')[0], duration: targetDuration, date: new Date().toLocaleString() });
             localStorage.setItem('fitnessHistory', JSON.stringify(history));
             announce("Routine complete");
-            setTimeout(stopRoutine, 2000); // Wake lock released in stopRoutine
+            setTimeout(stopRoutine, 2000);
         }
 
         function resetState() {
@@ -685,9 +719,23 @@
 
         function showHistory() {
             const historyList = document.getElementById('historyList');
+            const statsDisplay = document.getElementById('statsDisplay');
             historyList.innerHTML = history.length ? 
                 history.map(h => `<li>${h.date}: ${h.type} (${h.duration/60} min)</li>`).join('') : 
                 '<li>No workouts recorded yet!</li>';
+
+            const totalWorkouts = history.length;
+            const totalTime = history.reduce((sum, h) => sum + h.duration, 0) / 60;
+            const typeCounts = history.reduce((acc, h) => {
+                acc[h.type] = (acc[h.type] || 0) + 1;
+                return acc;
+            }, {});
+            const favoriteType = Object.keys(typeCounts).reduce((a, b) => typeCounts[a] > typeCounts[b] ? a : b, 'None');
+            statsDisplay.innerHTML = `
+                Total Workouts: ${totalWorkouts}<br>
+                Total Time: ${totalTime.toFixed(1)} min<br>
+                Favorite Routine: ${favoriteType} (${typeCounts[favoriteType] || 0} times)
+            `;
             document.getElementById('historyModal').style.display = 'block';
         }
     </script>
