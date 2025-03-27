@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Fitness Vibe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00e676; /* Neon green */
+            --secondary: #ff4081; /* Hot pink */
+            --accent: #3d5afe; /* Electric blue */
+            --bg-start: #fff176; /* Bright yellow */
+            --bg-end: #00e5ff; /* Cyan */
+            --text-dark: #1a1a1a;
+            --text-light: #616161;
+            --transition-bg: #e0f7fa;
+            --shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-dark);
+            transition: background 1s ease;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            margin-bottom: 1rem;
+        }
+        .options, .routine-details {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 450px;
+            margin-bottom: 20px;
+        }
+        .options h2, .routine-details h2 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        .option-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .btn {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: var(--text-dark);
+        }
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+        .btn-info {
+            background: var(--accent);
+            color: white;
+            font-size: 0.8rem;
+            padding: 5px 10px;
+        }
+        .workout {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        .transition-phase {
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid var(--primary);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .exercise-name {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+        .timer-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 15px auto;
+        }
+        .timer {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: var(--text-dark);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: color 0.3s;
+        }
+        .timer.active { color: var(--secondary); }
+        .timer.transition { color: var(--primary); }
+        .progress-ring {
+            width: 100%;
+            height: 100%;
+        }
+        .progress-ring__circle {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 10;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            transition: stroke-dashoffset 0.5s linear;
+        }
+        .total-progress {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin: 10px 0;
+        }
+        .exercise-desc {
+            font-size: 1rem;
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+        .next-up {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .routine-list {
+            text-align: left;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 10px;
+            display: none;
+        }
+        .routine-list li {
+            margin: 5px 0;
+        }
+        .routine-list.active {
+            display: block;
+        }
+        .completion {
+            display: none;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin: 20px 0;
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        #healthModal, #historyModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            text-align: left;
+            display: none;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        @media (max-width: 400px) {
+            h1 { font-size: 2rem; }
+            .exercise-name { font-size: 1.5rem; }
+            .timer { font-size: 2rem; }
+            .timer-container { width: 100px; height: 100px; }
+            .exercise-desc, .next-up { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Fitness Vibe</h1>
+    <div class="options" role="navigation">
+        <div class="routine-details">
+            <h2>Flexibility (Hip & Leg)</h2>
+            <div class="option-group">
+                <button class="btn btn-primary" onclick="startRoutine('flexibility', 'short')">Short (5 Min)</button>
+                <button class="btn btn-primary" onclick="startRoutine('flexibility', 'long')">Long (10 Min)</button>
+                <button class="btn btn-info" onclick="toggleRoutineList('flexibility')">List</button>
+            </div>
+        </div>
+        <div class="routine-details">
+            <h2>Posture (Hunchback Correction)</h2>
+            <div class="option-group">
+                <button class="btn btn-primary" onclick="startRoutine('posture', 'short')">Short (5 Min)</button>
+                <button class="btn btn-primary" onclick="startRoutine('posture', 'long')">Long (10 Min)</button>
+                <button class="btn btn-info" onclick="toggleRoutineList('posture')">List</button>
+            </div>
+        </div>
+        <div class="routine-details">
+            <h2>Strength</h2>
+            <div class="option-group">
+                <button class="btn btn-primary" onclick="startRoutine('strength', 'short')">Short (5 Min)</button>
+                <button class="btn btn-primary" onclick="startRoutine('strength', 'long')">Long (10 Min)</button>
+                <button class="btn btn-info" onclick="toggleRoutineList('strength')">List</button>
+            </div>
+        </div>
+        <div class="routine-details">
+            <h2>Resistance Band (Upper Body)</h2>
+            <div class="option-group">
+                <button class="btn btn-primary" onclick="startRoutine('resistance', 'short')">Short (5 Min)</button>
+                <button class="btn btn-primary" onclick="startRoutine('resistance', 'long')">Long (10 Min)</button>
+                <button class="btn btn-info" onclick="toggleRoutineList('resistance')">List</button>
+            </div>
+        </div>
+        <div class="option-group">
+            <button class="btn btn-info" onclick="showHealthCheck()">Health Check</button>
+            <button class="btn btn-info" onclick="showHistory()">Workout History</button>
+        </div>
+        <div id="routineList" class="routine-list"></div>
+    </div>
+
+    <div class="workout" id="workoutDisplay" role="main">
+        <div class="exercise-name" id="exerciseName" aria-live="polite"></div>
+        <div class="timer-container">
+            <svg class="progress-ring" viewBox="0 0 120 120">
+                <circle class="progress-ring__circle" cx="60" cy="60" r="54" />
+            </svg>
+            <div class="timer" id="timer" aria-live="polite">00:00</div>
+        </div>
+        <div class="total-progress" id="totalProgress"></div>
+        <div class="exercise-desc" id="exerciseDesc"></div>
+        <div class="next-up" id="nextUp"></div>
+        <div class="controls">
+            <button class="btn btn-secondary" onclick="skipExercise()" aria-label="Skip current exercise">Skip</button>
+            <button class="btn btn-secondary" onclick="togglePause()" id="pauseBtn" aria-label="Pause or resume workout">Pause</button>
+            <button class="btn btn-secondary" onclick="stopRoutine()" aria-label="Stop workout">Stop</button>
+            <button class="btn btn-secondary" onclick="resetRoutine()" aria-label="Reset workout">Reset</button>
+            <button class="btn btn-info" onclick="toggleMute()" id="muteBtn" aria-label="Toggle sound">Mute</button>
+        </div>
+        <div class="completion" id="completion">🎉 Routine Complete! 🎉</div>
+    </div>
+
+    <div id="healthModal">
+        <h2>Health Check</h2>
+        <p>Consult a doctor if you have:</p>
+        <ul>
+            <li>Hypertension (avoid Mountain Climbers)</li>
+            <li>Back pain (caution with Seated Twist, Plank)</li>
+            <li>Knee issues (modify Squats, Lunges)</li>
+            <li>Hip issues (adjust Pigeon Pose, Lizard Lunge)</li>
+            <li>Shoulder issues (caution with Resistance Band Shoulder Press, Lateral Raises)</li>
+        </ul>
+        <button class="btn btn-secondary" onclick="document.getElementById('healthModal').style.display='none'" aria-label="Close health check modal">Close</button>
+    </div>
+
+    <div id="historyModal">
+        <h2>Workout History</h2>
+        <ul id="historyList"></ul>
+        <button class="btn btn-secondary" onclick="document.getElementById('historyModal').style.display='none'" aria-label="Close history modal">Close</button>
+    </div>
+
+    <script>
+        const warmUp = [
+            { name: "Arm Circles", desc: "Stand tall, extend arms out, make small circles forward then backward.", time: 30, fixed: true }
+        ];
+        const coolDown = [
+            { name: "Seated Forward Fold", desc: "Sit with legs extended, fold forward gently, relax.", time: 20, fixed: true }
+        ];
+        const routines = {
+            flexibility: {
+                short: [
+                    { name: "Standing Forward Fold", desc: "Stand with feet hip-width apart, fold forward, let arms hang.", time: 30 },
+                    { name: "Low Lunge (Right)", desc: "Knee above ankle, sink hips, hands on knee or floor.", time: 30 },
+                    { name: "Half Split (Right)", desc: "Straighten front leg, flex foot, hinge at hips.", time: 30 },
+                    { name: "Low Lunge (Left)", desc: "Knee above ankle, sink hips, hands on knee or floor.", time: 30 },
+                    { name: "Half Split (Left)", desc: "Straighten front leg, flex foot, hinge at hips.", time: 30 },
+                    { name: "Seated Butterfly Stretch", desc: "Feet together, knees out, sit tall, lean slightly forward.", time: 30 },
+                    { name: "Reclined Figure Four (Right)", desc: "Lie on back, cross right ankle over left thigh, pull in gently.", time: 30 },
+                    { name: "Reclined Figure Four (Left)", desc: "Lie on back, cross left ankle over right thigh, pull in gently.", time: 30 },
+                    { name: "Seated Side Stretch (Right)", desc: "Sit cross-legged, reach right arm overhead to the left.", time: 30 },
+                    { name: "Seated Side Stretch (Left)", desc: "Sit cross-legged, reach left arm overhead to the right.", time: 30 }
+                ],
+                long: [
+                    { name: "Cat-Cow Stretch", desc: "On hands and knees, arch (cow), round back (cat).", time: 45 },
+                    { name: "Low Lunge + Twist (Right)", desc: "Left knee down, right foot forward, twist right.", time: 45 },
+                    { name: "Half Split (Right)", desc: "Straighten front leg, flex foot, hinge at hips.", time: 45 },
+                    { name: "Low Lunge + Twist (Left)", desc: "Right knee down, left foot forward, twist left.", time: 45 },
+                    { name: "Half Split (Left)", desc: "Straighten front leg, flex foot, hinge at hips.", time: 45 },
+                    { name: "Seated Butterfly Stretch", desc: "Feet together, knees out, sit tall, lean slightly forward.", time: 45 },
+                    { name: "Seated Forward Fold", desc: "Legs straight, fold forward from hips.", time: 45 },
+                    { name: "Reclined Figure Four (Right)", desc: "Lie on back, cross right ankle over left thigh, pull in gently.", time: 45 },
+                    { name: "Reclined Figure Four (Left)", desc: "Lie on back, cross left ankle over right thigh, pull in gently.", time: 45 },
+                    { name: "Seated Wide-Leg Forward Fold", desc: "Legs spread apart, fold forward gently.", time: 45 },
+                    { name: "Child’s Pose", desc: "Sit back on heels, arms extended forward, relax back.", time: 45 },
+                    { name: "Chest & Shoulder Stretch", desc: "Interlace fingers, pull hands back, open chest.", time: 45 }
+                ]
+            },
+            posture: {
+                short: [
+                    { name: "Wall Angels", desc: "Stand with back against a wall, arms at 90°, move arms up/down while keeping contact.", time: 40 },
+                    { name: "Standing Chest Opener", desc: "Interlace fingers behind back, pull hands down and away, open chest.", time: 40 },
+                    { name: "Cat-Cow Stretch", desc: "On all fours, arch back (cow), then round (cat) to mobilize spine.", time: 40 },
+                    { name: "Prone Y Raises", desc: "Lie face down, arms in a Y shape, lift arms slightly off ground, squeeze shoulder blades.", time: 40 },
+                    { name: "Child’s Pose with Side Stretch", desc: "Sit back on heels, stretch arms forward, walk hands right then left.", time: 40 }
+                ],
+                long: [
+                    { name: "Doorway Chest Stretch", desc: "Stand in a doorway, hands at shoulder height, step forward to stretch chest.", time: 45 },
+                    { name: "Wall Angels", desc: "Back against wall, arms in a goalpost position, move arms up/down while keeping contact.", time: 45 },
+                    { name: "Standing Chest Opener", desc: "Interlace fingers behind back, pull hands down and away, open chest.", time: 45 },
+                    { name: "Cat-Cow Stretch", desc: "On all fours, arch back (cow), then round (cat) to mobilize spine.", time: 45 },
+                    { name: "Prone Y Raises", desc: "Lie face down, arms in a Y shape, lift arms slightly off ground, squeeze shoulder blades.", time: 45 },
+                    { name: "Prone T Raises", desc: "Lie face down, arms in a T shape, lift arms slightly off ground, squeeze shoulder blades.", time: 45 },
+                    { name: "Child’s Pose with Side Stretch", desc: "Sit back on heels, stretch arms forward, walk hands right then left.", time: 45 },
+                    { name: "Resistance Band Pull-Aparts", desc: "Hold a band shoulder-width, pull it apart, squeeze shoulders.", time: 45 },
+                    { name: "Seated Neck Stretch", desc: "Tilt head to one side, hold, then switch.", time: 45 },
+                    { name: "Reverse Plank Hold", desc: "Sit with hands behind, lift hips, squeeze shoulder blades to open chest.", time: 45 }
+                ]
+            },
+            strength: {
+                short: [
+                    { name: "Bodyweight Squats", desc: "Feet shoulder-width, lower hips back, knees over toes, 10 reps.", time: 30, rest: 5 },
+                    { name: "Knee Push-Ups", desc: "Hands under shoulders, knees down, lower chest, 8 reps.", time: 30, rest: 5 },
+                    { name: "Plank Hold", desc: "Hold a straight line from head to heels, engage core.", time: 30, rest: 5 },
+                    { name: "Alternating Lunges", desc: "Step forward, knee over ankle, alternate legs, 6 per side.", time: 30, rest: 5 },
+                    { name: "Wall Sit", desc: "Back against wall, thighs parallel to floor, hold.", time: 30 }
+                ],
+                long: [
+                    { name: "Bodyweight Squats", desc: "Feet shoulder-width, lower hips back, knees over toes, 12 reps.", time: 45, rest: 5 },
+                    { name: "Knee Push-Ups", desc: "Hands under shoulders, knees down, lower chest, 10 reps.", time: 45, rest: 5 },
+                    { name: "Plank Hold", desc: "Hold a straight line from head to heels, engage core.", time: 45, rest: 5 },
+                    { name: "Alternating Lunges", desc: "Step forward, knee over ankle, alternate legs, 8 per side.", time: 45, rest: 5 },
+                    { name: "Wall Sit", desc: "Back against wall, thighs parallel to floor, hold.", time: 45, rest: 5 },
+                    { name: "Mountain Climbers", desc: "In plank, bring knees to chest quickly, alternate.", time: 45, rest: 5 },
+                    { name: "Side Plank (Right)", desc: "On right forearm, lift hips, hold.", time: 45, rest: 5 },
+                    { name: "Side Plank (Left)", desc: "On left forearm, lift hips, hold.", time: 45 }
+                ]
+            },
+            resistance: {
+                short: [
+                    { name: "Single-Arm Shoulder Press (Right)", desc: "Step on the band with one foot. Press overhead with right arm.", time: 40, rest: 5 },
+                    { name: "Single-Arm Shoulder Press (Left)", desc: "Step on the band with one foot. Press overhead with left arm.", time: 40, rest: 5 },
+                    { name: "Bent-Over Rows", desc: "Step on the band with both feet. Bend slightly forward, pull the band up towards your chest.", time: 40, rest: 5 },
+                    { name: "Bicep Curls", desc: "Step on the band with both feet, palms up, curl up together.", time: 40, rest: 5 },
+                    { name: "Chest Press", desc: "Hold the band behind your back, push forward explosively.", time: 40, rest: 5 },
+                    { name: "Overhead Triceps Extensions", desc: "Step on the band with one foot, hold it behind your head, extend arms up.", time: 40 }
+                ],
+                long: [
+                    { name: "Single-Arm Shoulder Press (Right)", desc: "Step on the band with one foot. Press overhead with right arm.", time: 45, rest: 5 },
+                    { name: "Single-Arm Shoulder Press (Left)", desc: "Step on the band with one foot. Press overhead with left arm.", time: 45, rest: 5 },
+                    { name: "Bent-Over Rows", desc: "Step on the band with both feet. Bend slightly forward, pull the band up towards your chest.", time: 45, rest: 5 },
+                    { name: "Bicep Curls", desc: "Step on the band with both feet, palms up, curl up together.", time: 45, rest: 5 },
+                    { name: "Chest Press", desc: "Hold the band behind your back, push forward explosively.", time: 45, rest: 5 },
+                    { name: "Lateral Raises", desc: "Step on the band, lift arms sideways to shoulder height.", time: 45, rest: 5 },
+                    { name: "Overhead Triceps Extensions", desc: "Step on the band with one foot, hold it behind your head, extend arms up.", time: 45, rest: 5 },
+                    { name: "Face Pulls", desc: "Hold band in both hands, pull towards face, elbows high.", time: 45, rest: 5 },
+                    { name: "Upright Rows", desc: "Step on the band, pull up towards chin, elbows higher than hands.", time: 45, rest: 5 },
+                    { name: "Reverse Flys", desc: "Slight hinge, pull band apart to squeeze upper back.", time: 45, rest: 5 },
+                    { name: "Banded Pull-Aparts", desc: "Hold band at shoulder-width, pull apart fully.", time: 45 }
+                ]
+            }
+        };
+
+        const TRANSITION_TIME = 5;
+        let currentRoutine = [];
+        let currentIndex = 0;
+        let timeLeft = 0;
+        let totalTimeElapsed = 0;
+        let targetDuration = 0;
+        let timerInterval = null;
+        let isPaused = false;
+        let isTransitioning = false;
+        let isResting = false;
+        let muted = false;
+        let audioContext = null;
+        let history = JSON.parse(localStorage.getItem('fitnessHistory')) || [];
+
+        function initAudioContext() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                } catch (e) {
+                    console.warn('AudioContext failed to initialize:', e);
+                }
+            }
+        }
+
+        function playBeep(frequency, duration) {
+            if (muted || !audioContext) return;
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            gainNode.gain.value = 0.5;
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + duration / 1000);
+        }
+
+        function playEndSequence() {
+            if (muted || !audioContext) return;
+            playBeep(800, 200);
+            setTimeout(() => playBeep(800, 200), 300);
+            setTimeout(() => playBeep(600, 300), 600);
+        }
+
+        function playStartBeep() {
+            if (muted || !audioContext) return;
+            playBeep(1000, 200);
+        }
+
+        function announce(text) {
+            if (!muted) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.2; // Slightly faster for clarity
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function startRoutine(type, length) {
+            if (!routines[type] || !routines[type][length]) {
+                alert('Invalid routine or length!');
+                return;
+            }
+            initAudioContext();
+            currentRoutine = [...warmUp, ...routines[type][length], ...coolDown];
+            targetDuration = length === 'short' ? 300 : 600; // 5 or 10 minutes
+            currentIndex = 0;
+            totalTimeElapsed = 0;
+            document.getElementById('workoutDisplay').style.display = 'block';
+            document.querySelector('.options').style.display = 'none';
+            document.body.style.background = `linear-gradient(135deg, ${type === 'flexibility' ? '#ffeb3b' : type === 'posture' ? '#00e676' : type === 'strength' ? '#ff4081' : '#ff5722'}, var(--bg-end))`;
+            nextExercise();
+        }
+
+        function nextExercise() {
+            if (totalTimeElapsed >= targetDuration) {
+                endRoutine();
+                return;
+            }
+            if (currentIndex >= currentRoutine.length) {
+                endRoutine();
+                return;
+            }
+
+            const exercise = currentRoutine[currentIndex];
+            if (isResting) {
+                timeLeft = exercise.rest || TRANSITION_TIME;
+                document.getElementById('exerciseName').textContent = "Rest";
+                document.getElementById('exerciseDesc').textContent = "Take a breather.";
+                document.getElementById('nextUp').textContent = currentIndex + 1 < currentRoutine.length ? `Next: ${currentRoutine[currentIndex + 1].name}` : '';
+                announce("Rest now");
+            } else {
+                timeLeft = exercise.time;
+                document.getElementById('exerciseName').textContent = exercise.name;
+                document.getElementById('exerciseDesc').textContent = exercise.desc;
+                document.getElementById('nextUp').textContent = currentIndex + 1 < currentRoutine.length ? `Next: ${currentRoutine[currentIndex + 1].name}` : '';
+                announce(exercise.name + ", start");
+            }
+
+            document.getElementById('timer').classList.toggle('transition', isResting);
+            document.getElementById('workoutDisplay').classList.toggle('transition-phase', isResting);
+            updateProgress();
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            updateTimer();
+            document.getElementById('timer').classList.add('active');
+            timerInterval = setInterval(() => {
+                if (!isPaused) {
+                    timeLeft--;
+                    if (!isResting) totalTimeElapsed++;
+                    updateTimer();
+                    updateProgressRing();
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        if (isResting) {
+                            isResting = false;
+                            currentIndex++;
+                            playStartBeep();
+                            nextExercise();
+                        } else if (isTransitioning) {
+                            isTransitioning = false;
+                            nextExercise();
+                        } else {
+                            playEndSequence();
+                            announce("Next exercise");
+                            if (currentRoutine[currentIndex].rest) {
+                                isResting = true;
+                                nextExercise();
+                            } else {
+                                isTransitioning = true;
+                                currentIndex++;
+                                nextExercise();
+                            }
+                        }
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateProgressRing() {
+            const circle = document.querySelector('.progress-ring__circle');
+            const radius = circle.r.baseVal.value;
+            const circumference = 2 * Math.PI * radius;
+            circle.style.strokeDasharray = `${circumference} ${circumference}`;
+            const maxTime = isResting ? (currentRoutine[currentIndex].rest || TRANSITION_TIME) : currentRoutine[currentIndex].time;
+            const offset = circumference - (timeLeft / maxTime) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        function updateProgress() {
+            const totalExercises = currentRoutine.length;
+            const percentComplete = Math.min((totalTimeElapsed / targetDuration) * 100, 100);
+            document.getElementById('totalProgress').textContent = 
+                `Step ${currentIndex + 1} of ${totalExercises} | ${percentComplete.toFixed(0)}% Complete`;
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            document.getElementById('pauseBtn').textContent = isPaused ? 'Resume' : 'Pause';
+            document.getElementById('timer').classList.toggle('active', !isPaused);
+            if (isPaused) announce("Paused");
+            else announce("Resuming");
+        }
+
+        function skipExercise() {
+            clearInterval(timerInterval);
+            isTransitioning = false;
+            isResting = false;
+            currentIndex++;
+            announce("Skipping to next exercise");
+            nextExercise();
+        }
+
+        function stopRoutine() {
+            clearInterval(timerInterval);
+            document.getElementById('workoutDisplay').style.display = 'none';
+            document.getElementById('completion').style.display = 'none';
+            document.querySelector('.options').style.display = 'block';
+            resetState();
+            document.body.style.background = `linear-gradient(135deg, var(--bg-start), var(--bg-end))`;
+            announce("Workout stopped");
+        }
+
+        function resetRoutine() {
+            clearInterval(timerInterval);
+            currentIndex = 0;
+            totalTimeElapsed = 0;
+            isPaused = false;
+            isTransitioning = false;
+            isResting = false;
+            announce("Workout reset");
+            nextExercise();
+        }
+
+        function endRoutine() {
+            clearInterval(timerInterval);
+            document.getElementById('exerciseName').textContent = '';
+            document.getElementById('timer').textContent = '00:00';
+            document.getElementById('exerciseDesc').textContent = '';
+            document.getElementById('nextUp').textContent = '';
+            document.getElementById('completion').style.display = 'block';
+            document.querySelector('.controls').style.display = 'none';
+            history.push({ type: currentRoutine[1].name.split(' ')[0], duration: targetDuration, date: new Date().toLocaleString() });
+            localStorage.setItem('fitnessHistory', JSON.stringify(history));
+            announce("Routine complete");
+            setTimeout(stopRoutine, 2000);
+        }
+
+        function resetState() {
+            isPaused = false;
+            isTransitioning = false;
+            isResting = false;
+            document.getElementById('pauseBtn').textContent = 'Pause';
+            document.getElementById('timer').classList.remove('active', 'transition');
+            document.querySelector('.controls').style.display = 'flex';
+            document.getElementById('workoutDisplay').classList.remove('transition-phase');
+            const circle = document.querySelector('.progress-ring__circle');
+            circle.style.strokeDashoffset = 0;
+        }
+
+        function toggleMute() {
+            muted = !muted;
+            document.getElementById('muteBtn').textContent = muted ? 'Unmute' : 'Mute';
+            announce(muted ? "Muted" : "Unmuted");
+        }
+
+        function toggleRoutineList(type) {
+            const list = document.getElementById('routineList');
+            if (list.classList.contains('active') && list.dataset.type === type) {
+                list.classList.remove('active');
+            } else {
+                list.innerHTML = routines[type].long.map(ex => `<li>${ex.name}: ${ex.desc}</li>`).join('');
+                list.classList.add('active');
+                list.dataset.type = type;
+                list.focus();
+            }
+        }
+
+        function showHealthCheck() {
+            document.getElementById('healthModal').style.display = 'block';
+        }
+
+        function showHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = history.length ? 
+                history.map(h => `<li>${h.date}: ${h.type} (${h.duration/60} min)</li>`).join('') : 
+                '<li>No workouts recorded yet!</li>';
+            document.getElementById('historyModal').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
